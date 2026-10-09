@@ -1,12 +1,15 @@
 import "server-only";
 import { headers } from "next/headers";
 
-// Fixed-window counter per process, keyed by IP + action.
-//
-// Deliberately modest: this stops one visitor hammering the public form or requesting a
-// thousand sign-in links, which is the whole point on a single-instance deploy. It is not
-// a distributed limiter — if this ever runs on more than one box, move the buckets to Redis
-// and keep this interface.
+import { Redis } from "ioredis";
+
+// Distributed rate limiter using Redis if REDIS_URL is provided,
+// falling back to an in-memory fixed-window counter for local development.
+
+let redisClient: Redis | null = null;
+if (process.env.REDIS_URL) {
+  redisClient = new Redis(process.env.REDIS_URL);
+}
 
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
@@ -20,7 +23,38 @@ function prune(now: number) {
 
 export type RateCheck = { ok: true; remaining: number } | { ok: false; retryAfterSeconds: number };
 
-export function rateLimit(key: string, limit: number, windowMs: number): RateCheck {
+export async function rateLimit(key: string, limit: number, windowMs: number): Promise<RateCheck> {
+  const redisKey = `ratelimit:${key}`;
+
+  if (redisClient) {
+    try {
+      const result = await redisClient.multi()
+        .incr(redisKey)
+        .pttl(redisKey)
+        .exec();
+
+      if (result) {
+        const count = result[0][1] as number;
+        const ttl = result[1][1] as number;
+
+        if (count === 1) {
+          await redisClient.pexpire(redisKey, windowMs);
+          return { ok: true, remaining: limit - 1 };
+        }
+
+        if (count > limit) {
+          const retryAfterSeconds = Math.max(1, Math.ceil(ttl / 1000));
+          return { ok: false, retryAfterSeconds };
+        }
+
+        return { ok: true, remaining: limit - count };
+      }
+    } catch (e) {
+      console.error("Redis rate limit failed, falling back to memory:", e);
+    }
+  }
+
+  // Fallback to in-memory store
   const now = Date.now();
   prune(now);
   const bucket = buckets.get(key);

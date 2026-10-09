@@ -10,7 +10,11 @@ import {
   parseRubric,
   scoreQuiz,
 } from "@/lib/tasks";
-import { countWords, isPublicHttpUrl, truncate, validateSubmissionContent } from "@/lib/validation";
+import { countWords, isPublicHttpUrl, isPrivateAddress, truncate, validateSubmissionContent } from "@/lib/validation";
+import * as dns from "dns";
+import { promisify } from "util";
+
+const lookupAsync = promisify(dns.lookup);
 import { audit, revalidateConsoles } from "@/lib/audit";
 import { clientKey, LIMITS, rateLimit } from "@/lib/rate-limit";
 import { syncEarnedGrants } from "@/lib/rewards";
@@ -82,7 +86,12 @@ function grab(html: string, re: RegExp): string | null {
  * snapshot of a 2 GB download is still a 2 GB download.
  *
  * Known limit: this reads by hostname only, so DNS pointing a public-looking name at a
- * private address is not caught here.
+ * private address is not caught here. It uses a DNS lookup to check if the hostname resolves
+ * to a private IP, however, since `fetch()` handles its own DNS resolution subsequently, this
+ * implementation remains vulnerable to DNS rebinding (TOCTOU - Time Of Check To Time Of Use)
+ * where the attacker changes the DNS record between our check and our fetch. Fixing this fully
+ * requires hooking into the TCP socket connection of the fetch to ensure the exact same IP
+ * is used for check and fetch, which native fetch does not cleanly support without a custom agent.
  */
 async function snapshotLink(rawUrl: string): Promise<LinkSnapshot> {
   const fetchedAt = new Date().toISOString();
@@ -90,6 +99,19 @@ async function snapshotLink(rawUrl: string): Promise<LinkSnapshot> {
 
   for (let hop = 0; hop < SNAPSHOT_MAX_HOPS; hop++) {
     if (!isPublicHttpUrl(current)) return { fetchedAt, ok: false, title: null, description: null, finalUrl: null, blocked: "private" };
+
+    let resolvedIp;
+    try {
+      const { address } = await lookupAsync(new URL(current).hostname);
+      resolvedIp = address;
+    } catch {
+      return { fetchedAt, ok: false, title: null, description: null, finalUrl: null, blocked: "network" };
+    }
+
+    if (isPrivateAddress(resolvedIp)) {
+      return { fetchedAt, ok: false, title: null, description: null, finalUrl: null, blocked: "private" };
+    }
+
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), SNAPSHOT_TIMEOUT_MS);
@@ -162,7 +184,8 @@ function decorate(task: { submissionType: string; typeConfig: unknown }, content
 
 export async function saveDraft(taskId: string, raw: unknown): Promise<SubmissionOutcome> {
   const key = await clientKey("draft");
-  if (!rateLimit(key, LIMITS.submission.limit, LIMITS.submission.windowMs).ok) {
+  const limited = await rateLimit(key, LIMITS.submission.limit, LIMITS.submission.windowMs);
+  if (!limited.ok) {
     return fail("You are saving drafts very quickly. Try again in a few minutes.");
   }
 
@@ -192,7 +215,8 @@ export async function saveDraft(taskId: string, raw: unknown): Promise<Submissio
 
 export async function submitTask(taskId: string, raw: unknown): Promise<SubmissionOutcome> {
   const key = await clientKey("submit");
-  if (!rateLimit(key, LIMITS.submission.limit, LIMITS.submission.windowMs).ok) {
+  const limited = await rateLimit(key, LIMITS.submission.limit, LIMITS.submission.windowMs);
+  if (!limited.ok) {
     return fail("You are submitting very quickly. Try again in a few minutes.");
   }
 

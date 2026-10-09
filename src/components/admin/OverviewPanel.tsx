@@ -39,11 +39,12 @@ export function OverviewPanel({ data, onOpenReview }: { data: AdminDashboardData
         <span className="text-xs opacity-80">Target under 48</span>
       </motion.div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Tile index={0} label="Awaiting review" value={stats.pendingCount} onClick={onOpenReview} />
         <Tile index={1} label="Active ambassadors" value={stats.activeCount} />
-        <Tile index={2} label="Accept rate, 30d" value={stats.acceptRate} suffix="%" />
-        <Tile index={3} label="At risk" value={stats.atRisk} tone={stats.atRisk > 0 ? "warn" : undefined} />
+        <Tile index={2} label="Invited / Suspended" value={stats.invitedCount} suffix={` / ${stats.suspendedCount}`} stringValue />
+        <Tile index={3} label="Accept rate, 30d" value={stats.acceptRate ?? "N/A"} suffix={stats.acceptRate !== null ? "%" : undefined} stringValue={stats.acceptRate === null} />
+        <Tile index={4} label="At risk" value={stats.atRisk} tone={stats.atRisk > 0 ? "warn" : undefined} />
       </div>
 
       <motion.div custom={4} variants={fadeUp} initial="hidden" animate="show" className="card p-5">
@@ -59,7 +60,7 @@ export function OverviewPanel({ data, onOpenReview }: { data: AdminDashboardData
   );
 }
 
-function Tile({ index, label, value, suffix, tone, onClick }: { index: number; label: string; value: number; suffix?: string; tone?: "warn"; onClick?: () => void }) {
+function Tile({ index, label, value, suffix, tone, onClick, stringValue }: { index: number; label: string; value: number | string; suffix?: string; tone?: "warn"; onClick?: () => void; stringValue?: boolean }) {
   const El = onClick ? motion.button : motion.div;
   return (
     <El
@@ -74,7 +75,7 @@ function Tile({ index, label, value, suffix, tone, onClick }: { index: number; l
     >
       <p className="eyebrow !text-[0.6rem]">{label}</p>
       <p className={`font-display text-2xl ${tone === "warn" ? "text-cognac-deep" : "text-ink"}`}>
-        <AnimatedNumber value={value} />
+        {stringValue ? <span>{value}</span> : <AnimatedNumber value={value as number} />}
         {suffix}
       </p>
     </El>

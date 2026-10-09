@@ -12,7 +12,8 @@ import { truncate } from "@/lib/validation";
 
 export async function claimReward(rewardId: string, detail?: string): Promise<ActionResult> {
   const key = await clientKey("claim");
-  if (!rateLimit(key, LIMITS.claim.limit, LIMITS.claim.windowMs).ok) {
+  const limited = await rateLimit(key, LIMITS.claim.limit, LIMITS.claim.windowMs);
+  if (!limited.ok) {
     return fail("You are claiming very quickly. Try again in a few minutes.");
   }
 
