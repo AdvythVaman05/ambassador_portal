@@ -20,7 +20,6 @@
     "db:bootstrap": "cross-env NODE_OPTIONS=--conditions=react-server tsx scripts/bootstrap.ts"
   },
   "dependencies": {
-    "@playwright/test": "^1.64.0",
     "@prisma/client": "^5.22.0",
     "framer-motion": "^13.2.0",
     "ioredis": "^6.0.0",
@@ -28,9 +27,11 @@
     "prisma": "^5.22.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "undici": "^8.11.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

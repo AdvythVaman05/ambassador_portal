@@ -90,12 +90,13 @@ export async function getAdminDashboard() {
   const now = Date.now();
 
   // At risk if lastSeenAt > 10 days ago (ignoring nulls) OR overdue assigned tasks without valid completion.
-  const checkAtRisk = (u: { lastSeenAt: Date | null, submissions: { taskId: string; status: string }[] }) => {
+  const checkAtRisk = (u: { lane: string | null, lastSeenAt: Date | null, submissions: { taskId: string; status: string }[] }) => {
     let reason = null;
     if (u.lastSeenAt && hoursSince(u.lastSeenAt) > 240) {
       reason = "Inactive >10 days";
     } else {
-      const overdueTasks = allTasks.filter(t => t.published && t.dueAt.getTime() < now);
+      const applicableTasks = allTasks.filter(t => t.published && t.track === u.lane);
+      const overdueTasks = applicableTasks.filter(t => t.dueAt.getTime() < now);
       for (const t of overdueTasks) {
         const sub = u.submissions.find((s: { taskId: string; status: string }) => s.taskId === t.id);
         if (!sub || sub.status === "missed" || sub.status === "rejected" || sub.status === "draft") {

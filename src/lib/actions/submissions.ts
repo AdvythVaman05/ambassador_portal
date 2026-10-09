@@ -13,6 +13,9 @@ import {
 import { countWords, isPublicHttpUrl, isPrivateAddress, truncate, validateSubmissionContent } from "@/lib/validation";
 import * as dns from "dns";
 import { promisify } from "util";
+import { Agent, request as httpRequest } from "http";
+import { request as httpsRequest } from "https";
+import type { RequestOptions } from "https";
 
 const lookupAsync = promisify(dns.lookup);
 import { audit, revalidateConsoles } from "@/lib/audit";
@@ -79,20 +82,77 @@ function grab(html: string, re: RegExp): string | null {
  * Fetches what a reviewer would see, so "it was live when I submitted" is evidence and not
  * a claim.
  *
- * Two things this has to get right, and the old version did not: the URL came from the
- * ambassador, so fetching it blindly made the server a proxy for whoever's internal port
- * they felt like pointing at. Each hop is therefore re-checked against private ranges and
- * redirects are followed by hand. And the body is capped while streaming, because a
- * snapshot of a 2 GB download is still a 2 GB download.
- *
- * Known limit: this reads by hostname only, so DNS pointing a public-looking name at a
- * private address is not caught here. It uses a DNS lookup to check if the hostname resolves
- * to a private IP, however, since `fetch()` handles its own DNS resolution subsequently, this
- * implementation remains vulnerable to DNS rebinding (TOCTOU - Time Of Check To Time Of Use)
- * where the attacker changes the DNS record between our check and our fetch. Fixing this fully
- * requires hooking into the TCP socket connection of the fetch to ensure the exact same IP
- * is used for check and fetch, which native fetch does not cleanly support without a custom agent.
+ * SSRF protection uses a custom lookup method for native http/https request to ensure DNS rebinding
+ * is prevented. We resolve the IP beforehand, verify it is not private, and then bind that
+ * exact resolved IP when establishing the socket connection, avoiding TOCTOU vulnerability.
  */
+
+async function safeFetch(urlStr: string): Promise<Response> {
+  const url = new URL(urlStr);
+  const isHttps = url.protocol === "https:";
+
+  let resolvedIp: string;
+  try {
+    const { address } = await lookupAsync(url.hostname, { all: false });
+    resolvedIp = address;
+  } catch {
+    throw new Error("DNS resolution failed");
+  }
+
+  if (isPrivateAddress(resolvedIp)) {
+    throw new Error("Private IP detected");
+  }
+
+  return new Promise((resolve, reject) => {
+    const options: RequestOptions = {
+      method: "GET",
+      headers: { "user-agent": SNAPSHOT_UA, accept: "text/html,*/*" },
+      lookup: (hostname, options, callback) => {
+        // Enforce the pre-resolved IP
+        callback(null, resolvedIp, resolvedIp.includes(":") ? 6 : 4);
+      }
+    };
+
+    const req = (isHttps ? httpsRequest : httpRequest)(url, options, (res) => {
+      // Wrap the Node.js IncomingMessage into a standard Response-like interface
+      // needed by our readCapped and subsequent logic.
+      const headers = new Headers();
+      for (const [k, v] of Object.entries(res.headers)) {
+        if (Array.isArray(v)) {
+          v.forEach(val => headers.append(k, val));
+        } else if (v) {
+          headers.append(k, v);
+        }
+      }
+
+      // Convert Node stream to web stream for readCapped compatibility
+      const readableStream = new ReadableStream({
+        start(controller) {
+          res.on("data", (chunk) => controller.enqueue(chunk));
+          res.on("end", () => controller.close());
+          res.on("error", (err) => controller.error(err));
+        },
+        cancel() {
+          res.destroy();
+        }
+      });
+
+      resolve(new Response(readableStream, {
+        status: res.statusCode ?? 200,
+        statusText: res.statusMessage,
+        headers
+      }));
+    });
+
+    req.on("error", reject);
+    req.setTimeout(SNAPSHOT_TIMEOUT_MS, () => {
+      req.destroy();
+      reject(new Error("Timeout"));
+    });
+    req.end();
+  });
+}
+
 async function snapshotLink(rawUrl: string): Promise<LinkSnapshot> {
   const fetchedAt = new Date().toISOString();
   let current = rawUrl;
@@ -100,26 +160,8 @@ async function snapshotLink(rawUrl: string): Promise<LinkSnapshot> {
   for (let hop = 0; hop < SNAPSHOT_MAX_HOPS; hop++) {
     if (!isPublicHttpUrl(current)) return { fetchedAt, ok: false, title: null, description: null, finalUrl: null, blocked: "private" };
 
-    let resolvedIp;
     try {
-      const { address } = await lookupAsync(new URL(current).hostname);
-      resolvedIp = address;
-    } catch {
-      return { fetchedAt, ok: false, title: null, description: null, finalUrl: null, blocked: "network" };
-    }
-
-    if (isPrivateAddress(resolvedIp)) {
-      return { fetchedAt, ok: false, title: null, description: null, finalUrl: null, blocked: "private" };
-    }
-
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), SNAPSHOT_TIMEOUT_MS);
-      const res = await fetch(current, {
-        signal: controller.signal,
-        redirect: "manual",
-        headers: { "user-agent": SNAPSHOT_UA, accept: "text/html,*/*" },
-      }).finally(() => clearTimeout(timer));
+      const res = await safeFetch(current);
 
       const status = res.status;
       if ([301, 302, 303, 307, 308].includes(status)) {
