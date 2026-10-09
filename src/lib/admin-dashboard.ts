@@ -52,7 +52,7 @@ export async function getAdminDashboard() {
       include: {
         membership: { include: { campus: true } },
         certificate: { select: { publicId: true, revokedAt: true, assessmentScore: true, issuedAt: true } },
-        submissions: { orderBy: { createdAt: "desc" }, take: 60, include: { task: true } },
+        submissions: { orderBy: { createdAt: "desc" }, include: { task: true } },
         ledgerEntries: { orderBy: { createdAt: "desc" }, take: 60 },
         rewardGrants: { include: { reward: true } },
       },
