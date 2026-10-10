@@ -59,7 +59,13 @@ export async function getAdminDashboard() {
       orderBy: { name: "asc" },
       take: AMBASSADOR_CAP,
     }),
-    db.review.findMany({ where: { reviewedAt: { gte: new Date(Date.now() - 30 * 86400000) } }, select: { decision: true } }),
+    db.review.findMany({
+      where: {
+        reviewedAt: { gte: new Date(Date.now() - 30 * 86400000) },
+        submission: { task: { cohortId: cohort.id } }
+      },
+      select: { decision: true }
+    }),
     db.task.findMany({ where: { cohortId: cohort.id, week, published: true } }),
     db.task.findMany({ where: { cohortId: cohort.id }, orderBy: { week: "asc" } }),
     db.application.findMany({ orderBy: { createdAt: "desc" }, take: APPLICATION_CAP }),
@@ -89,6 +95,12 @@ export async function getAdminDashboard() {
 
   const now = Date.now();
 
+  // A task is missed if there is no submission at all, or the latest submission
+  // is draft, missed, or rejected, and the deadline has passed.
+  const isSubmissionIncomplete = (status: string) => {
+    return status === "draft" || status === "missed" || status === "rejected";
+  };
+
   // At risk if lastSeenAt > 10 days ago (ignoring nulls) OR overdue assigned tasks without valid completion.
   const checkAtRisk = (u: { lane: string | null, lastSeenAt: Date | null, submissions: { taskId: string; status: string }[] }) => {
     let reason = null;
@@ -97,9 +109,12 @@ export async function getAdminDashboard() {
     } else {
       const applicableTasks = allTasks.filter(t => t.published && t.track === u.lane);
       const overdueTasks = applicableTasks.filter(t => t.dueAt.getTime() < now);
+
+      // We only consider the latest attempt for each task based on how the query is structured
+      // and we need to check if they have a valid submission.
       for (const t of overdueTasks) {
         const sub = u.submissions.find((s: { taskId: string; status: string }) => s.taskId === t.id);
-        if (!sub || sub.status === "missed" || sub.status === "rejected" || sub.status === "draft") {
+        if (!sub || isSubmissionIncomplete(sub.status)) {
           reason = `Missed ${t.code}`;
           break;
         }

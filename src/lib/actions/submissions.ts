@@ -17,7 +17,6 @@ import { Agent, request as httpRequest } from "http";
 import { request as httpsRequest } from "https";
 import type { RequestOptions } from "https";
 
-const lookupAsync = promisify(dns.lookup);
 import { audit, revalidateConsoles } from "@/lib/audit";
 import { clientKey, LIMITS, rateLimit } from "@/lib/rate-limit";
 import { syncEarnedGrants } from "@/lib/rewards";
@@ -91,22 +90,33 @@ async function safeFetch(urlStr: string): Promise<Response> {
   const url = new URL(urlStr);
   const isHttps = url.protocol === "https:";
 
-  let resolvedIp: string;
+  let resolvedIps: string[];
   try {
-    const { address } = await lookupAsync(url.hostname, { all: false });
-    resolvedIp = address;
+    // Resolve both IPv4 and IPv6 to make sure all responses are public
+    const addresses = await promisify(dns.lookup)(url.hostname, { all: true });
+    resolvedIps = addresses.map((a) => a.address);
   } catch {
     throw new Error("DNS resolution failed");
   }
 
-  if (isPrivateAddress(resolvedIp)) {
-    throw new Error("Private IP detected");
+  // Check all resolved records, any private ip throws immediately
+  for (const ip of resolvedIps) {
+    if (isPrivateAddress(ip)) {
+      throw new Error("Private IP detected");
+    }
   }
+
+  // Select the first valid IP for connection.
+  const resolvedIp = resolvedIps[0];
 
   return new Promise((resolve, reject) => {
     const options: RequestOptions = {
       method: "GET",
       headers: { "user-agent": SNAPSHOT_UA, accept: "text/html,*/*" },
+      // Must explicitly prevent redirect following here because safeFetch handles
+      // redirects manually at the top level loop to ensure each hop gets
+      // newly evaluated against DNS checks. Node's `request` does not natively follow redirects
+      // anyway, but good to ensure.
       lookup: (hostname, options, callback) => {
         // Enforce the pre-resolved IP
         callback(null, resolvedIp, resolvedIp.includes(":") ? 6 : 4);
