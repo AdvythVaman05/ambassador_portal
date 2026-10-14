@@ -15,7 +15,6 @@ import { getAdminDashboard } from "@/lib/admin-dashboard";
 import { rateLimit } from "@/lib/rate-limit";
 import {
   isPublicHttpUrl,
-  isPrivateAddress,
   safeHref,
   validateSubmissionContent,
   MAX_CONTENT_BYTES,

@@ -74,7 +74,7 @@ export async function fulfillGrant(grantId: string): Promise<ActionResult> {
   // public verify page reads a Certificate row. Issuing first means a failed issuance cannot
   // be hidden behind a "fulfilled" tick.
   if (grant.reward.code === "certificate") {
-    const issued = await issueCertificate(grant.userId, { actorId: user.id });
+    const issued = await issueCertificate(grant.userId);
     if (!issued.ok) return fail(issued.error);
   }
 

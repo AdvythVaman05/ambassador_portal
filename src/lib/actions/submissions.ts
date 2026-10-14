@@ -13,7 +13,7 @@ import {
 import { countWords, isPublicHttpUrl, isPrivateAddress, truncate, validateSubmissionContent } from "@/lib/validation";
 import * as dns from "dns";
 import { promisify } from "util";
-import { Agent, request as httpRequest } from "http";
+import { request as httpRequest } from "http";
 import { request as httpsRequest } from "https";
 import type { RequestOptions } from "https";
 

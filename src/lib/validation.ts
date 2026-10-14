@@ -260,7 +260,14 @@ export function isPublicHttpUrl(value: string): boolean {
   if (host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".home.arpa")) return false;
   if (/^[a-z0-9-]+\.localdomain$/i.test(host)) return false;
   if (!host.includes(".") && !/^\d/.test(host)) return false; // bare hostname = intranet by convention
-  return !isPrivateAddress(host);
+
+  // If it parses as an IP address, ensure it's not a private IP.
+  // If it's a hostname, we allow it (it will be DNS-resolved and checked later).
+  if (ipaddr.isValid(host)) {
+    return !isPrivateAddress(host);
+  }
+
+  return true;
 }
 
 import * as ipaddr from "ipaddr.js";
@@ -277,9 +284,9 @@ export function isPrivateAddress(host: string): boolean {
     // ipaddr.js considers 'unicast' as globally routable public IPs outside of special ranges.
     return addr.range() !== "unicast";
   } catch {
-    // If it fails to parse (e.g. it's a hostname and not an IP), we must assume it's unsafe or let
-    // upstream DNS resolution handle it before calling this function.
-    return true;
+    // If it fails to parse (e.g. it's a hostname and not an IP), it's not a private IP address literally.
+    // Upstream functions handle DNS resolution.
+    return false;
   }
 }
 

@@ -44,7 +44,7 @@ export async function assessmentFor(userId: string) {
   return best;
 }
 
-export async function issueCertificate(userId: string, opts: { actorId: string | null }): Promise<IssueResult> {
+export async function issueCertificate(userId: string): Promise<IssueResult> {
   const existing = await db.certificate.findUnique({ where: { userId } });
   if (existing && !existing.revokedAt) return { ok: true, publicId: existing.publicId };
 
