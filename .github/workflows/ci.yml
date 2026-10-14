@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: campus_circle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Setup environment
+      run: |
+        cp .env.example .env
+        echo "DATABASE_URL=postgresql://postgres:password@localhost:5432/campus_circle" >> .env
+        echo "DIRECT_URL=postgresql://postgres:password@localhost:5432/campus_circle" >> .env
+
+    - name: Run Lint
+      run: npm run lint
+
+    - name: Run Typecheck
+      run: npm run typecheck
+
+    - name: Prisma Deploy and Seed
+      run: |
+        npx prisma generate
+        npx prisma migrate deploy
+        npm run db:seed
+
+    - name: Run Build
+      run: npm run build
+
+    - name: Verify Unit Tests
+      run: npm run verify
+
+    - name: Verify UI Tests
+      run: |
+        npx playwright install chromium
+        npm run verify:ui
+
+    - name: Verify Prod Tests
+      run: |
+        npm start &
+        sleep 5
+        npm run verify:prod

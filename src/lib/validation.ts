@@ -263,38 +263,24 @@ export function isPublicHttpUrl(value: string): boolean {
   return !isPrivateAddress(host);
 }
 
+import * as ipaddr from "ipaddr.js";
+
 export function isPrivateAddress(host: string): boolean {
-  // IPv4-mapped IPv6 translation
-  if (host.startsWith('::ffff:')) {
-    host = host.substring(7);
+  try {
+    const parsed = ipaddr.parse(host);
+    // If it's an IPv4-mapped IPv6 address, convert it to IPv4 for strict range checking.
+    const addr = parsed.kind() === "ipv6" && (parsed as ipaddr.IPv6).isIPv4MappedAddress()
+      ? (parsed as ipaddr.IPv6).toIPv4Address()
+      : parsed;
+
+    // We only accept unicast addresses. Everything else (private, loopback, multicast, etc.) is blocked.
+    // ipaddr.js considers 'unicast' as globally routable public IPs outside of special ranges.
+    return addr.range() !== "unicast";
+  } catch {
+    // If it fails to parse (e.g. it's a hostname and not an IP), we must assume it's unsafe or let
+    // upstream DNS resolution handle it before calling this function.
+    return true;
   }
-
-  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
-  if (v4) {
-    const [, a, b, c, d] = v4.map((x) => Number(x));
-    if (a === 127 || a === 10 || a === 0) return true; // Loopback, Private, Current network
-    if (a === 172 && b >= 16 && b <= 31) return true; // Private
-    if (a === 192 && b === 168) return true; // Private
-    if (a === 169 && b === 254) return true; // link-local, includes 169.254.169.254
-    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT 100.64.0.0/10
-    if (a === 198 && (b === 18 || b === 19)) return true; // Benchmarking
-    if (a === 192 && (b === 0 && (c === 0 || c === 2))) return true; // IETF Protocol / TEST-NET-1
-    if (a === 198 && b === 51 && c === 100) return true; // TEST-NET-2
-    if (a === 203 && b === 0 && c === 113) return true; // TEST-NET-3
-    if (a >= 224 && a <= 239) return true; // Multicast
-    if (a >= 240 && a <= 255) return true; // Reserved / Broadcast
-    return false;
-  }
-
-  // Expand compressed IPv6 for easier matching
-  const h = host.toLowerCase();
-
-  if (h === "::1" || h === "::") return true; // Loopback or Unspecified
-  if (/^f[cd][0-9a-f]{2}:/.test(h)) return true; // fc00::/7 unique-local
-  if (/^fe[89ab][0-9a-f]:/.test(h)) return true; // fe80::/10 link-local
-  if (/^ff[0-9a-f]{2}:/.test(h)) return true; // Multicast
-  if (/^2001:db8:/.test(h)) return true; // Documentation
-  return false;
 }
 
 // ── small helpers ───────────────────────────────────────────────────────────

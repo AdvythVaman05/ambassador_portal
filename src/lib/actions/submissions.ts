@@ -175,6 +175,7 @@ async function snapshotLink(rawUrl: string): Promise<LinkSnapshot> {
 
       const status = res.status;
       if ([301, 302, 303, 307, 308].includes(status)) {
+        res.body?.cancel().catch(() => undefined); // explicitly cancel body stream for redirects
         const location = res.headers.get("location");
         if (!location) break;
         try {
@@ -187,6 +188,7 @@ async function snapshotLink(rawUrl: string): Promise<LinkSnapshot> {
 
       const contentType = res.headers.get("content-type") ?? "";
       if (!contentType.includes("html") && !contentType.includes("text")) {
+        res.body?.cancel().catch(() => undefined); // explicitly cancel non-HTML bodies
         return { fetchedAt, ok: status < 400, status, title: null, description: null, finalUrl: current };
       }
 

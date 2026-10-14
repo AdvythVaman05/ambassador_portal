@@ -23,11 +23,11 @@
     "@prisma/client": "^5.22.0",
     "framer-motion": "^13.2.0",
     "ioredis": "^6.0.0",
+    "ipaddr.js": "^2.5.0",
     "next": "^15.1.6",
     "prisma": "^5.22.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "undici": "^8.11.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -40,7 +40,6 @@
     "cross-env": "^10.1.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.5",
-    "msw": "^3.0.3",
     "playwright-core": "^1.63.0",
     "postcss": "^8",
     "server-only": "^0.0.1",
