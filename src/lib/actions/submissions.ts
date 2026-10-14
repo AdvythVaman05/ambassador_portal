@@ -10,7 +10,13 @@ import {
   parseRubric,
   scoreQuiz,
 } from "@/lib/tasks";
-import { countWords, isPublicHttpUrl, truncate, validateSubmissionContent } from "@/lib/validation";
+import { countWords, isPublicHttpUrl, isPrivateAddress, truncate, validateSubmissionContent } from "@/lib/validation";
+import * as dns from "dns";
+import { promisify } from "util";
+import { request as httpRequest } from "http";
+import { request as httpsRequest } from "https";
+import type { RequestOptions } from "https";
+
 import { audit, revalidateConsoles } from "@/lib/audit";
 import { clientKey, LIMITS, rateLimit } from "@/lib/rate-limit";
 import { syncEarnedGrants } from "@/lib/rewards";
@@ -75,32 +81,101 @@ function grab(html: string, re: RegExp): string | null {
  * Fetches what a reviewer would see, so "it was live when I submitted" is evidence and not
  * a claim.
  *
- * Two things this has to get right, and the old version did not: the URL came from the
- * ambassador, so fetching it blindly made the server a proxy for whoever's internal port
- * they felt like pointing at. Each hop is therefore re-checked against private ranges and
- * redirects are followed by hand. And the body is capped while streaming, because a
- * snapshot of a 2 GB download is still a 2 GB download.
- *
- * Known limit: this reads by hostname only, so DNS pointing a public-looking name at a
- * private address is not caught here.
+ * SSRF protection uses a custom lookup method for native http/https request to ensure DNS rebinding
+ * is prevented. We resolve the IP beforehand, verify it is not private, and then bind that
+ * exact resolved IP when establishing the socket connection, avoiding TOCTOU vulnerability.
  */
+
+async function safeFetch(urlStr: string): Promise<Response> {
+  const url = new URL(urlStr);
+  const isHttps = url.protocol === "https:";
+
+  let resolvedIps: string[];
+  try {
+    // Resolve both IPv4 and IPv6 to make sure all responses are public
+    const addresses = await promisify(dns.lookup)(url.hostname, { all: true });
+    resolvedIps = addresses.map((a) => a.address);
+  } catch {
+    throw new Error("DNS resolution failed");
+  }
+
+  // Check all resolved records, any private ip throws immediately
+  for (const ip of resolvedIps) {
+    if (isPrivateAddress(ip)) {
+      throw new Error("Private IP detected");
+    }
+  }
+
+  // Select the first valid IP for connection.
+  const resolvedIp = resolvedIps[0];
+
+  return new Promise((resolve, reject) => {
+    const options: RequestOptions = {
+      method: "GET",
+      headers: { "user-agent": SNAPSHOT_UA, accept: "text/html,*/*" },
+      // Must explicitly prevent redirect following here because safeFetch handles
+      // redirects manually at the top level loop to ensure each hop gets
+      // newly evaluated against DNS checks. Node's `request` does not natively follow redirects
+      // anyway, but good to ensure.
+      lookup: (hostname, options, callback) => {
+        // Enforce the pre-resolved IP
+        callback(null, resolvedIp, resolvedIp.includes(":") ? 6 : 4);
+      }
+    };
+
+    const req = (isHttps ? httpsRequest : httpRequest)(url, options, (res) => {
+      // Wrap the Node.js IncomingMessage into a standard Response-like interface
+      // needed by our readCapped and subsequent logic.
+      const headers = new Headers();
+      for (const [k, v] of Object.entries(res.headers)) {
+        if (Array.isArray(v)) {
+          v.forEach(val => headers.append(k, val));
+        } else if (v) {
+          headers.append(k, v);
+        }
+      }
+
+      // Convert Node stream to web stream for readCapped compatibility
+      const readableStream = new ReadableStream({
+        start(controller) {
+          res.on("data", (chunk) => controller.enqueue(chunk));
+          res.on("end", () => controller.close());
+          res.on("error", (err) => controller.error(err));
+        },
+        cancel() {
+          res.destroy();
+        }
+      });
+
+      resolve(new Response(readableStream, {
+        status: res.statusCode ?? 200,
+        statusText: res.statusMessage,
+        headers
+      }));
+    });
+
+    req.on("error", reject);
+    req.setTimeout(SNAPSHOT_TIMEOUT_MS, () => {
+      req.destroy();
+      reject(new Error("Timeout"));
+    });
+    req.end();
+  });
+}
+
 async function snapshotLink(rawUrl: string): Promise<LinkSnapshot> {
   const fetchedAt = new Date().toISOString();
   let current = rawUrl;
 
   for (let hop = 0; hop < SNAPSHOT_MAX_HOPS; hop++) {
     if (!isPublicHttpUrl(current)) return { fetchedAt, ok: false, title: null, description: null, finalUrl: null, blocked: "private" };
+
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), SNAPSHOT_TIMEOUT_MS);
-      const res = await fetch(current, {
-        signal: controller.signal,
-        redirect: "manual",
-        headers: { "user-agent": SNAPSHOT_UA, accept: "text/html,*/*" },
-      }).finally(() => clearTimeout(timer));
+      const res = await safeFetch(current);
 
       const status = res.status;
       if ([301, 302, 303, 307, 308].includes(status)) {
+        res.body?.cancel().catch(() => undefined); // explicitly cancel body stream for redirects
         const location = res.headers.get("location");
         if (!location) break;
         try {
@@ -113,6 +188,7 @@ async function snapshotLink(rawUrl: string): Promise<LinkSnapshot> {
 
       const contentType = res.headers.get("content-type") ?? "";
       if (!contentType.includes("html") && !contentType.includes("text")) {
+        res.body?.cancel().catch(() => undefined); // explicitly cancel non-HTML bodies
         return { fetchedAt, ok: status < 400, status, title: null, description: null, finalUrl: current };
       }
 
@@ -162,7 +238,8 @@ function decorate(task: { submissionType: string; typeConfig: unknown }, content
 
 export async function saveDraft(taskId: string, raw: unknown): Promise<SubmissionOutcome> {
   const key = await clientKey("draft");
-  if (!rateLimit(key, LIMITS.submission.limit, LIMITS.submission.windowMs).ok) {
+  const limited = await rateLimit(key, LIMITS.submission.limit, LIMITS.submission.windowMs);
+  if (!limited.ok) {
     return fail("You are saving drafts very quickly. Try again in a few minutes.");
   }
 
@@ -192,7 +269,8 @@ export async function saveDraft(taskId: string, raw: unknown): Promise<Submissio
 
 export async function submitTask(taskId: string, raw: unknown): Promise<SubmissionOutcome> {
   const key = await clientKey("submit");
-  if (!rateLimit(key, LIMITS.submission.limit, LIMITS.submission.windowMs).ok) {
+  const limited = await rateLimit(key, LIMITS.submission.limit, LIMITS.submission.windowMs);
+  if (!limited.ok) {
     return fail("You are submitting very quickly. Try again in a few minutes.");
   }
 

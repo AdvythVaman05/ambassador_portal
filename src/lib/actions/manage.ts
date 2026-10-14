@@ -257,7 +257,7 @@ export async function issueCertificateFor(userId: string): Promise<ActionResult<
   const { user, error } = await adminOnly();
   if (!user) return fail(error);
 
-  const result = await issueCertificate(userId, { actorId: user.id });
+  const result = await issueCertificate(userId);
   if (!result.ok) return fail(result.error);
   await audit({ actorId: user.id, action: "certificate.issued", target: result.publicId, meta: { userId } });
   revalidateConsoles();

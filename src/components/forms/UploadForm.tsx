@@ -58,7 +58,8 @@ export function UploadForm({
     <div className="flex flex-col gap-4">
       <label className="block text-sm font-medium text-ink">{label}</label>
 
-      <div
+      <button
+        type="button"
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -70,7 +71,7 @@ export function UploadForm({
           addFiles(e.dataTransfer.files);
         }}
         onClick={() => inputRef.current?.click()}
-        className={`flex cursor-pointer flex-col items-center gap-2 rounded-sm2 border-2 border-dashed px-6 py-8 text-center transition-colors ${
+        className={`w-full flex cursor-pointer flex-col items-center justify-center rounded-sm2 border-2 border-dashed p-8 transition-colors ${
           dragOver ? "border-cognac bg-cognac/5" : "border-line-strong hover:border-ink-45"
         }`}
       >
@@ -81,15 +82,15 @@ export function UploadForm({
         <p className="text-xs text-ink-45">
           Up to {maxFiles} files, 1.75MB each · {files.length}/{maxFiles} added
         </p>
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept="image/*,.pdf"
-          className="hidden"
-          onChange={(e) => addFiles(e.target.files)}
-        />
-      </div>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf"
+        className="hidden"
+        onChange={(e) => addFiles(e.target.files)}
+      />
 
       {error && <p className="text-xs text-cognac-deep">{error}</p>}
 

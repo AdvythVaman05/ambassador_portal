@@ -20,7 +20,7 @@ const GENERIC = "If that address has an account, a sign-in link is on its way. I
  */
 export async function requestSignInLink(_prev: SignInState, formData: FormData): Promise<SignInState> {
   const key = await clientKey("magiclink");
-  const limited = rateLimit(key, LIMITS.magicLink.limit, LIMITS.magicLink.windowMs);
+  const limited = await rateLimit(key, LIMITS.magicLink.limit, LIMITS.magicLink.windowMs);
   if (!limited.ok) {
     return { ok: false, error: `Too many link requests from this connection. Try again in ${Math.ceil(limited.retryAfterSeconds / 60)} minutes.` };
   }
@@ -46,7 +46,7 @@ export async function passwordSignIn(_prev: SignInState, formData: FormData): Pr
   const password = String(formData.get("password") ?? "");
 
   const key = await clientKey("password:" + email.slice(0, 60));
-  const limited = rateLimit(key, LIMITS.passwordLogin.limit, LIMITS.passwordLogin.windowMs);
+  const limited = await rateLimit(key, LIMITS.passwordLogin.limit, LIMITS.passwordLogin.windowMs);
   if (!limited.ok) {
     return { ok: false, error: `Too many attempts for that address. Try again in ${Math.ceil(limited.retryAfterSeconds / 60)} minutes, or email yourself a link.` };
   }

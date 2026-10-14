@@ -52,14 +52,20 @@ export async function getAdminDashboard() {
       include: {
         membership: { include: { campus: true } },
         certificate: { select: { publicId: true, revokedAt: true, assessmentScore: true, issuedAt: true } },
-        submissions: { orderBy: { createdAt: "desc" }, take: 60, include: { task: true } },
+        submissions: { orderBy: { createdAt: "desc" }, include: { task: true } },
         ledgerEntries: { orderBy: { createdAt: "desc" }, take: 60 },
         rewardGrants: { include: { reward: true } },
       },
       orderBy: { name: "asc" },
       take: AMBASSADOR_CAP,
     }),
-    db.review.findMany({ where: { reviewedAt: { gte: new Date(Date.now() - 30 * 86400000) } }, select: { decision: true } }),
+    db.review.findMany({
+      where: {
+        reviewedAt: { gte: new Date(Date.now() - 30 * 86400000) },
+        submission: { task: { cohortId: cohort.id } }
+      },
+      select: { decision: true }
+    }),
     db.task.findMany({ where: { cohortId: cohort.id, week, published: true } }),
     db.task.findMany({ where: { cohortId: cohort.id }, orderBy: { week: "asc" } }),
     db.application.findMany({ orderBy: { createdAt: "desc" }, take: APPLICATION_CAP }),
@@ -82,8 +88,43 @@ export async function getAdminDashboard() {
   const oldest = pendingSubs[0];
   const oldestHours = oldest ? hoursSince(oldest.submittedAt ?? oldest.createdAt) : 0;
   const accepted = decisions.filter((d) => d.decision === "accepted").length;
-  const acceptRate = decisions.length ? Math.round((accepted / decisions.length) * 100) : 0;
-  const atRisk = ambassadorsRaw.filter((u) => !u.submissions[0] || hoursSince(u.submissions[0].createdAt) > 240).length;
+  const acceptRate = decisions.length ? Math.round((accepted / decisions.length) * 100) : null;
+  const activeAmbassadors = ambassadorsRaw.filter((u) => u.status === "active");
+  const invitedAmbassadors = ambassadorsRaw.filter((u) => u.status === "invited");
+  const suspendedAmbassadors = ambassadorsRaw.filter((u) => u.status === "suspended");
+
+  const now = Date.now();
+
+  // A task is missed if there is no submission at all, or the latest submission
+  // is draft, missed, or rejected, and the deadline has passed.
+  const isSubmissionIncomplete = (status: string) => {
+    return status === "draft" || status === "missed" || status === "rejected";
+  };
+
+  // At risk if lastSeenAt > 10 days ago (ignoring nulls) OR overdue assigned tasks without valid completion.
+  const checkAtRisk = (u: { lane: string | null, lastSeenAt: Date | null, submissions: { taskId: string; status: string }[] }) => {
+    let reason = null;
+    if (u.lastSeenAt && hoursSince(u.lastSeenAt) > 240) {
+      reason = "Inactive >10 days";
+    } else {
+      const applicableTasks = allTasks.filter(t => t.published && t.track === u.lane);
+      const overdueTasks = applicableTasks.filter(t => t.dueAt.getTime() < now);
+
+      // We only consider the latest attempt for each task based on how the query is structured
+      // and we need to check if they have a valid submission.
+      for (const t of overdueTasks) {
+        const sub = u.submissions.find((s: { taskId: string; status: string }) => s.taskId === t.id);
+        if (!sub || isSubmissionIncomplete(sub.status)) {
+          reason = `Missed ${t.code}`;
+          break;
+        }
+      }
+    }
+    return reason;
+  };
+
+  const activeAmbassadorsWithRisk = activeAmbassadors.map(u => ({ ...u, atRiskReason: checkAtRisk(u) }));
+  const atRisk = activeAmbassadorsWithRisk.filter(u => u.atRiskReason).length;
 
   const weekTaskIds = weekTasks.map((t) => t.id);
   const weekSubs = weekTaskIds.length ? await db.submission.findMany({ where: { taskId: { in: weekTaskIds } } }) : [];
@@ -106,7 +147,9 @@ export async function getAdminDashboard() {
     stats: {
       oldestHours,
       oldestLabel: oldest ? `${oldest.user.name}, ${oldest.task.code}` : null,
-      activeCount: ambassadorsRaw.length,
+      activeCount: activeAmbassadors.length,
+      invitedCount: invitedAmbassadors.length,
+      suspendedCount: suspendedAmbassadors.length,
       pendingCount: pendingSubs.length,
       acceptRate,
       atRisk,
@@ -139,6 +182,7 @@ export async function getAdminDashboard() {
     })),
     ambassadors: ambassadorsRaw.map((u) => {
       const last = u.submissions[0];
+      const riskReason = u.status === "active" ? checkAtRisk(u) : null;
       return {
         id: u.id,
         name: u.name,
@@ -153,7 +197,7 @@ export async function getAdminDashboard() {
         acceptedCount: u.submissions.filter((s) => s.status === "accepted").length,
         submittedCount: u.submissions.filter((s) => s.status !== "draft").length,
         lastActiveISO: last?.createdAt.toISOString() ?? null,
-        atRisk: !last || hoursSince(last.createdAt) > 240,
+        atRiskReason: riskReason,
         submissions: u.submissions.map((s) => ({ id: s.id, code: s.task.code, title: s.task.title, status: s.status, attemptNo: s.attemptNo })),
         ledger: u.ledgerEntries.map((l) => ({ id: l.id, taskCode: l.taskCode, delta: l.delta })),
         grants: u.rewardGrants.map((g) => ({ id: g.id, rewardName: g.reward.name, status: g.status })),

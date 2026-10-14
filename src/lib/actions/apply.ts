@@ -22,7 +22,7 @@ const MIN_WORDS = 40;
 
 export async function submitApplication(_prev: ApplyState, formData: FormData): Promise<ApplyState> {
   const key = await clientKey("apply");
-  const limited = rateLimit(key, LIMITS.apply.limit, LIMITS.apply.windowMs);
+  const limited = await rateLimit(key, LIMITS.apply.limit, LIMITS.apply.windowMs);
   if (!limited.ok) return { ok: false, error: `Too many applications from this connection. Try again in ${Math.ceil(limited.retryAfterSeconds / 60)} minutes.` };
 
   const parsed = applicationSchema.safeParse({

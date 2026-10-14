@@ -80,7 +80,7 @@ export function AmbassadorsPanel({
                   <span className="flex items-center gap-2.5">
                     <Avatar name={u.name} color={u.avatarColor} size={24} />
                     <span className="font-medium text-ink">{u.name}</span>
-                    {u.atRisk && <span className="rounded-full bg-cognac/10 px-1.5 py-0.5 text-[0.6rem] font-medium text-cognac-deep">at risk</span>}
+                    {u.atRiskReason && <span className="rounded-full bg-cognac/10 px-1.5 py-0.5 text-[0.6rem] font-medium text-cognac-deep">at risk: {u.atRiskReason}</span>}
                   </span>
                 </td>
                 <td className="px-4 py-2 text-ink-60">{u.campusName}</td>

@@ -745,8 +745,6 @@ async function main() {
   // "Available by week 5" tasks in the order an ambassador would naturally clear them.
   const EARLY_CODES = ["A1", "A2", "A3", "A4", "A5", "D1", "D2", "D3", "D4", "D5", "D6", "C1", "B1", "E1"];
 
-  const now = new Date();
-
   // Curated ages (hours) for the four submissions currently sitting in the review queue,
   // chosen so the oldest breaches the 48h target and the admin alarm has something real to show.
   const B2_QUEUE_AGES: Record<string, number> = {

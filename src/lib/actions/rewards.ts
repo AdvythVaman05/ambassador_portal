@@ -12,7 +12,8 @@ import { truncate } from "@/lib/validation";
 
 export async function claimReward(rewardId: string, detail?: string): Promise<ActionResult> {
   const key = await clientKey("claim");
-  if (!rateLimit(key, LIMITS.claim.limit, LIMITS.claim.windowMs).ok) {
+  const limited = await rateLimit(key, LIMITS.claim.limit, LIMITS.claim.windowMs);
+  if (!limited.ok) {
     return fail("You are claiming very quickly. Try again in a few minutes.");
   }
 
@@ -73,7 +74,7 @@ export async function fulfillGrant(grantId: string): Promise<ActionResult> {
   // public verify page reads a Certificate row. Issuing first means a failed issuance cannot
   // be hidden behind a "fulfilled" tick.
   if (grant.reward.code === "certificate") {
-    const issued = await issueCertificate(grant.userId, { actorId: user.id });
+    const issued = await issueCertificate(grant.userId);
     if (!issued.ok) return fail(issued.error);
   }
 

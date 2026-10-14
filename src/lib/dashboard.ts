@@ -68,7 +68,6 @@ export async function getAmbassadorDashboard(userId: string) {
   const subsByTask = new Map<string, typeof allSubmissions>();
   for (const s of allSubmissions) subsByTask.set(s.taskId, [...(subsByTask.get(s.taskId) ?? []), s]);
 
-  const now = new Date();
   const dashTasks: DashTask[] = tasks.map((t) => {
     const subs = (subsByTask.get(t.id) ?? []).sort((a, b) => b.attemptNo - a.attemptNo);
     const latest = subs[0];
