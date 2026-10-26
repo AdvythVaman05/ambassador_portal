@@ -1,0 +1,179 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Rothenhall brand tokens (from rothenhall.com) mapped onto semantic shadcn tokens. */
+
+@theme inline {
+  --font-display: "Jost", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-canvas: var(--canvas);
+  --color-canvas-2: var(--canvas-2);
+  --color-paper: var(--paper);
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-ink: var(--ink);
+  --color-ink-80: var(--ink-80);
+  --color-ink-60: var(--ink-60);
+  --color-ink-45: var(--ink-45);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-cognac: var(--cognac);
+  --color-cognac-soft: var(--cognac-soft);
+  --color-cognac-deep: var(--cognac-deep);
+  --color-brass: var(--brass);
+  --color-brass-soft: var(--brass-soft);
+  --color-brass-deep: var(--brass-deep);
+  --color-on-night: var(--on-night);
+  --color-on-night-muted: var(--on-night-muted);
+  --color-line-night: var(--line-night);
+}
+
+:root {
+  --radius: 0.375rem;
+  --canvas: #f7f3ea;
+  --canvas-2: #efe9dc;
+  --paper: #fbf9f3;
+  --night: #14120d;
+  --night-2: #201c15;
+  --ink: #1a1712;
+  --ink-80: #3a352c;
+  --ink-60: #5c5648;
+  --ink-45: #857d6c;
+  --line: #ddd5c4;
+  --line-strong: #cbc0a9;
+  --cognac: #a85c30;
+  --cognac-soft: #c67c48;
+  --cognac-deep: #8a4a26;
+  --brass: #9a7a4a;
+  --brass-soft: #b79a6b;
+  --brass-deep: #7c6238;
+  --alert: #9d3b2f;
+  --on-night: #f7f3ea;
+  --on-night-muted: #b5ac9a;
+  --line-night: #3a342a;
+
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--canvas);
+  --secondary: var(--canvas-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--canvas-2);
+  --muted-foreground: var(--ink-60);
+  --accent: var(--canvas-2);
+  --accent-foreground: var(--ink);
+  --destructive: var(--alert);
+  --destructive-foreground: var(--paper);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--cognac);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-ink);
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-cognac);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  ::selection {
+    background: var(--color-cognac-soft);
+    color: var(--color-paper);
+  }
+}
+
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+}
+
+@utility press {
+  transition:
+    transform 120ms ease-out,
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .press:active {
+    transform: none;
+  }
+}
