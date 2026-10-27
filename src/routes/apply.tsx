@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { PageHeader } from "@/components/site/PageHeader";
 import { Button, Container, Field, inputClass } from "@/components/site/primitives";
+import { submitApplicationServer } from "./-apply.actions";
 
 export const Route = createFileRoute("/apply")({
   head: () => ({
@@ -21,8 +23,10 @@ export const Route = createFileRoute("/apply")({
 function Apply() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [submissionError, setSubmissionError] = useState<string>();
+  const submitApplication = useServerFn(submitApplicationServer);
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const d = new FormData(e.currentTarget);
     const next: Record<string, string> = {};
@@ -37,15 +41,36 @@ function Apply() {
       next["idea"] = "Tell us a little more (at least 20 characters).";
     if (!d.get("unpaid")) next["unpaid"] = "Please acknowledge that the program is unpaid.";
     if (!d.get("consent"))
-      next["consent"] =
-        "Please confirm that you understand this prototype does not send or store your information.";
+      next["consent"] = "Please confirm that we may store your application for review.";
     setErrors(next);
     if (Object.keys(next).length) {
       setState("error");
       return;
     }
     setState("loading");
-    window.setTimeout(() => setState("success"), 450);
+    setSubmissionError(undefined);
+    try {
+      await submitApplication({
+        data: {
+          fullName: String(d.get("name")).trim(),
+          email: String(d.get("email")).trim(),
+          institution: String(d.get("institution")).trim(),
+          course: String(d.get("course")).trim(),
+          statement: String(d.get("idea")).trim(),
+          interests: String(d.get("interests")).trim()
+            ? [String(d.get("interests")).trim()]
+            : undefined,
+          skills: String(d.get("skills")).trim() ? [String(d.get("skills")).trim()] : undefined,
+          portfolioUrl: String(d.get("portfolio")).trim() || undefined,
+        },
+      });
+      setState("success");
+    } catch {
+      setSubmissionError(
+        "Applications are not available until the platform database is configured. Nothing was submitted.",
+      );
+      setState("error");
+    }
   }
 
   return (
@@ -60,7 +85,8 @@ function Apply() {
           role="note"
           className="mb-8 max-w-xl rounded-md border border-dashed border-brass bg-paper p-4 text-sm text-ink-80"
         >
-          Preview only: this form checks your answers but does not send them anywhere yet.
+          Applications are stored only when the platform database is configured. Until then, this
+          form validates your answers and does not submit them.
         </div>
         <form noValidate onSubmit={onSubmit} className="grid max-w-xl gap-6">
           <Field label="Full name" id="name" error={errors["name"]}>
@@ -169,8 +195,8 @@ function Apply() {
             </p>
           )}
           <label className="flex gap-3 text-sm leading-relaxed text-ink-80">
-            <input name="consent" type="checkbox" className="mt-1 size-4 accent-cognac" />I
-            understand that this prototype does not transmit or retain my application information.
+            <input name="consent" type="checkbox" className="mt-1 size-4 accent-cognac" />I consent
+            to the secure storage of my application for review if the platform is configured.
           </label>
           {errors["consent"] && (
             <p role="alert" className="-mt-4 text-xs text-destructive">
@@ -178,16 +204,17 @@ function Apply() {
             </p>
           )}
           <Button type="submit" disabled={state === "loading"} className="justify-self-start">
-            {state === "loading" ? "Checking application…" : "Check application"}
+            {state === "loading" ? "Submitting application…" : "Submit application"}
           </Button>
           {state === "success" && (
             <p role="status" className="text-sm text-cognac-deep">
-              Your application is complete as a prototype. Nothing was transmitted or stored.
+              Your application has been received. A reviewer may contact you if there is a next
+              step.
             </p>
           )}
           {state === "error" && (
             <p role="status" className="text-sm text-destructive">
-              Please correct the highlighted fields before continuing.
+              {submissionError ?? "Please correct the highlighted fields before continuing."}
             </p>
           )}
         </form>

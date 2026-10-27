@@ -12,7 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ApplyRouteImport } from './routes/apply'
+import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ReviewRouteImport } from './routes/review'
+import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as BriefIndexRouteImport } from './routes/brief.index'
 import { Route as BriefSlugRouteImport } from './routes/brief.$slug'
 import { Route as InsightsIndexRouteImport } from './routes/insights.index'
@@ -37,9 +41,29 @@ const ApplyRoute = ApplyRouteImport.update({
   path: '/apply',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConsoleRoute = ConsoleRouteImport.update({
+  id: '/console',
+  path: '/console',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
   path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BriefIndexRoute = BriefIndexRouteImport.update({
@@ -87,7 +111,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/apply': typeof ApplyRoute
+  '/console': typeof ConsoleRoute
   '/faq': typeof FaqRoute
+  '/login': typeof LoginRoute
+  '/review': typeof ReviewRoute
+  '/workspace': typeof WorkspaceRoute
   '/brief/$slug': typeof BriefSlugRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/projects/$slug': typeof ProjectsSlugRoute
@@ -101,7 +129,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/apply': typeof ApplyRoute
+  '/console': typeof ConsoleRoute
   '/faq': typeof FaqRoute
+  '/login': typeof LoginRoute
+  '/review': typeof ReviewRoute
+  '/workspace': typeof WorkspaceRoute
   '/brief/$slug': typeof BriefSlugRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/projects/$slug': typeof ProjectsSlugRoute
@@ -116,7 +148,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/apply': typeof ApplyRoute
+  '/console': typeof ConsoleRoute
   '/faq': typeof FaqRoute
+  '/login': typeof LoginRoute
+  '/review': typeof ReviewRoute
+  '/workspace': typeof WorkspaceRoute
   '/brief/$slug': typeof BriefSlugRoute
   '/insights/$slug': typeof InsightsSlugRoute
   '/projects/$slug': typeof ProjectsSlugRoute
@@ -132,7 +168,11 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/apply'
+    | '/console'
     | '/faq'
+    | '/login'
+    | '/review'
+    | '/workspace'
     | '/brief/$slug'
     | '/insights/$slug'
     | '/projects/$slug'
@@ -146,7 +186,11 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/apply'
+    | '/console'
     | '/faq'
+    | '/login'
+    | '/review'
+    | '/workspace'
     | '/brief/$slug'
     | '/insights/$slug'
     | '/projects/$slug'
@@ -160,7 +204,11 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/apply'
+    | '/console'
     | '/faq'
+    | '/login'
+    | '/review'
+    | '/workspace'
     | '/brief/$slug'
     | '/insights/$slug'
     | '/projects/$slug'
@@ -175,7 +223,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ApplyRoute: typeof ApplyRoute
+  ConsoleRoute: typeof ConsoleRoute
   FaqRoute: typeof FaqRoute
+  LoginRoute: typeof LoginRoute
+  ReviewRoute: typeof ReviewRoute
+  WorkspaceRoute: typeof WorkspaceRoute
   BriefSlugRoute: typeof BriefSlugRoute
   InsightsSlugRoute: typeof InsightsSlugRoute
   ProjectsSlugRoute: typeof ProjectsSlugRoute
@@ -209,11 +261,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApplyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/console': {
+      id: '/console'
+      path: '/console'
+      fullPath: '/console'
+      preLoaderRoute: typeof ConsoleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/faq': {
       id: '/faq'
       path: '/faq'
       fullPath: '/faq'
       preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspace': {
+      id: '/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof WorkspaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/brief/': {
@@ -279,7 +359,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ApplyRoute: ApplyRoute,
+  ConsoleRoute: ConsoleRoute,
   FaqRoute: FaqRoute,
+  LoginRoute: LoginRoute,
+  ReviewRoute: ReviewRoute,
+  WorkspaceRoute: WorkspaceRoute,
   BriefSlugRoute: BriefSlugRoute,
   InsightsSlugRoute: InsightsSlugRoute,
   ProjectsSlugRoute: ProjectsSlugRoute,

@@ -13,7 +13,7 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <section className="border-b border-line">
+    <section className="border-b border-line" data-reveal>
       <Container className="py-16 sm:py-24">
         <p className="eyebrow text-cognac">{eyebrow}</p>
         <h1 className="display mt-4 max-w-3xl text-[2.4rem] sm:text-[3.4rem]">{title}</h1>
