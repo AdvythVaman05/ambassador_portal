@@ -115,6 +115,26 @@
     font-feature-settings: "ss01";
     -webkit-font-smoothing: antialiased;
   }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(14px);
+      transition:
+        opacity 600ms ease-out,
+        transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    [data-reveal][data-revealed] {
+      opacity: 1;
+      transform: none;
+    }
+    [data-reveal] .eyebrow {
+      transition-delay: 40ms;
+    }
+    [data-reveal] h1 {
+      transition-delay: 100ms;
+    }
+  }
   h1,
   h2,
   h3,
