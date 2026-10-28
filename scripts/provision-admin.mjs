@@ -1,6 +1,12 @@
 import postgres from "postgres";
-const { DATABASE_URL, INITIAL_ADMIN_EMAIL: email, INITIAL_ADMIN_PASSWORD: password } = process.env;
-if (!DATABASE_URL || !email || !password)
+const {
+  MIGRATION_DATABASE_URL,
+  DATABASE_URL,
+  INITIAL_ADMIN_EMAIL: email,
+  INITIAL_ADMIN_PASSWORD: password,
+} = process.env;
+const connectionUrl = MIGRATION_DATABASE_URL ?? DATABASE_URL;
+if (!connectionUrl || !email || !password)
   throw new Error("DATABASE_URL, INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD are required");
 if (password.length < 12) throw new Error("INITIAL_ADMIN_PASSWORD must be at least 12 characters");
 const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -20,7 +26,7 @@ const digest = new Uint8Array(
 );
 const b64 = (bytes) => Buffer.from(bytes).toString("base64");
 const hash = `pbkdf2-sha256$310000$${b64(salt)}$${b64(digest)}`;
-const sql = postgres(DATABASE_URL, { max: 1 });
+const sql = postgres(connectionUrl, { max: 1 });
 try {
   await sql.begin(async (transaction) => {
     const users =
