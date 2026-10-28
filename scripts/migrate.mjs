@@ -3,8 +3,9 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 
-const url = process.env.DATABASE_URL;
-if (!url) throw new Error("DATABASE_URL is required");
+// Use Neon’s direct URL for DDL when available; runtime queries use DATABASE_URL.
+const url = process.env.MIGRATION_DATABASE_URL ?? process.env.DATABASE_URL;
+if (!url) throw new Error("MIGRATION_DATABASE_URL or DATABASE_URL is required");
 const sql = postgres(url, { max: 1 });
 const root = join(
   dirname(fileURLToPath(import.meta.url)),
