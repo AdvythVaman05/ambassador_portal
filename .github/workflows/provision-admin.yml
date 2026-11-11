@@ -1,0 +1,70 @@
+name: Provision first Campus Scouts administrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type CREATE_ADMIN to create the initial administrator exactly once
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neon-production-admin-provisioning
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    name: Verify and provision administrator
+    runs-on: ubuntu-latest
+    steps:
+      # This workflow is present on main for discovery, but secrets are only used
+      # after checking out the reviewed deployment branch.
+      - name: Check out the deployment branch
+        uses: actions/checkout@v4
+        with:
+          ref: deploy/campus-scouts-production
+          persist-credentials: false
+
+      - name: Read pinned Bun version
+        id: bun-version
+        shell: bash
+        run: echo "version=$(tr -d '\r\n' < .bun-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun-version.outputs.version }}
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Require explicit confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$CONFIRMATION" != "CREATE_ADMIN" ]; then
+            echo "::error::Provisioning not run. Re-dispatch with confirmation set to CREATE_ADMIN."
+            exit 1
+          fi
+
+      - name: Resolve and verify intended Neon database
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          EXPECTED_DATABASE_NAME: neondb
+        run: bun run migrate:preflight
+
+      - name: Provision the first administrator
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          INITIAL_ADMIN_EMAIL: ${{ secrets.INITIAL_ADMIN_EMAIL }}
+          INITIAL_ADMIN_PASSWORD: ${{ secrets.INITIAL_ADMIN_PASSWORD }}
+        run: bun run provision:admin
+
+      - name: Verify administrator role
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          INITIAL_ADMIN_EMAIL: ${{ secrets.INITIAL_ADMIN_EMAIL }}
+        run: bun scripts/verify-admin-provisioning.mjs
