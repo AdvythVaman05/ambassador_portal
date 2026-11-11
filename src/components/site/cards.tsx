@@ -61,7 +61,12 @@ export function ArticleCard({
     );
   }
   return (
-    <Link to="/insights/$slug" params={{ slug: article.slug }} className={cardLink}>
+    <Link
+      to="/insights/$slug"
+      params={{ slug: article.slug }}
+      className={cardLink}
+      data-motion-card
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="eyebrow text-cognac">{article.category}</span>
         <DemoTag />
@@ -82,7 +87,12 @@ export function ProjectCard({ project, index }: { project: Project; index?: numb
     .filter(Boolean)
     .join(", ");
   return (
-    <Link to="/projects/$slug" params={{ slug: project.slug }} className={cardLink}>
+    <Link
+      to="/projects/$slug"
+      params={{ slug: project.slug }}
+      className={cardLink}
+      data-motion-card
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="eyebrow text-ink-60">
           {index !== undefined && (
@@ -118,7 +128,7 @@ export function ProjectCard({ project, index }: { project: Project; index?: numb
 
 export function ContributorCard({ person }: { person: Contributor }) {
   return (
-    <Link to="/scouts/$slug" params={{ slug: person.slug }} className={cardLink}>
+    <Link to="/scouts/$slug" params={{ slug: person.slug }} className={cardLink} data-motion-card>
       <div className="flex items-start gap-3">
         <Initials name={person.name} />
         <div className="min-w-0">

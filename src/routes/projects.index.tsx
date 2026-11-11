@@ -33,7 +33,7 @@ function Projects() {
         title="Ideas are useful. Evidence is better."
         lead="These example projects are illustrative demonstration content. They show format and method, not real findings."
       />
-      <Container className="py-10 sm:py-16">
+      <Container className="py-10 sm:py-16" data-motion-section>
         <input
           aria-label="Search projects"
           value={query}
@@ -42,7 +42,7 @@ function Projects() {
           placeholder="Search projects, categories or skills"
         />
         {visible.length ? (
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3" data-motion-stagger>
             {visible.map((p, i) => (
               <ProjectCard key={p.slug} project={p} index={i} />
             ))}

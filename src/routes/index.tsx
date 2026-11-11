@@ -61,22 +61,32 @@ function Home() {
 
 function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="relative overflow-hidden border-b border-line">
+    <section
+      aria-labelledby="hero-title"
+      className="relative overflow-hidden border-b border-line"
+      data-motion-hero
+    >
       <Container className="grid gap-14 py-16 sm:py-24 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-28">
         <div>
-          <p className="eyebrow text-cognac">Rothenhall Partners / Campus Scouts</p>
+          <p className="eyebrow text-cognac" data-motion-hero-item>
+            Rothenhall Partners / Campus Scouts
+          </p>
           <h1
             id="hero-title"
             className="display mt-6 text-[2.7rem] sm:text-[3.8rem] lg:text-[4.4rem]"
+            data-motion-hero-item
           >
             Don't just follow what changes.{" "}
             <span className="text-cognac">Help build what comes next.</span>
           </h1>
-          <p className="mt-7 max-w-xl text-lg leading-relaxed text-ink-60 sm:text-xl">
+          <p
+            className="mt-7 max-w-xl text-lg leading-relaxed text-ink-60 sm:text-xl"
+            data-motion-hero-item
+          >
             Explore AI visibility, investigate how businesses grow, and turn your ideas into work
             that people can actually see.
           </p>
-          <div className="mt-9 flex flex-wrap gap-3">
+          <div className="mt-9 flex flex-wrap gap-3" data-motion-hero-item>
             <ButtonLink to="/about" arrow>
               Explore the Program
             </ButtonLink>
@@ -84,7 +94,7 @@ function Hero() {
               Apply to Join
             </ButtonLink>
           </div>
-          <p className="mt-8 text-sm text-ink-45">
+          <p className="mt-8 text-sm text-ink-45" data-motion-hero-item>
             Flexible, part-time and unpaid. Open to students from any discipline.
           </p>
         </div>
@@ -105,6 +115,8 @@ function HeroVisual() {
     <figure
       aria-label="Illustration: from a research question to a published piece"
       className="relative mx-auto w-full max-w-md lg:max-w-none"
+      data-motion-clip
+      data-motion-parallax
     >
       <div className="rounded-lg border border-line bg-paper p-6 shadow-[0_30px_60px_-40px_rgb(20_18_13/0.45)] sm:p-8">
         <div className="flex items-center justify-between">
@@ -156,7 +168,7 @@ const pillars = [
 
 function Intro() {
   return (
-    <section aria-labelledby="intro-title" className="border-b border-line">
+    <section aria-labelledby="intro-title" className="border-b border-line" data-motion-section>
       <Container className="grid gap-12 py-20 sm:py-28 lg:grid-cols-[1fr_1.4fr] lg:gap-20">
         <div>
           <SectionHeading
@@ -218,16 +230,27 @@ const activities = [
 
 function Activities() {
   return (
-    <section aria-labelledby="act-title" className="bg-canvas-2/60 border-b border-line">
+    <section
+      aria-labelledby="act-title"
+      className="bg-canvas-2/60 border-b border-line"
+      data-motion-section
+    >
       <Container className="py-20 sm:py-28">
         <SectionHeading
           id="act-title"
           eyebrow="What Scouts do"
           title="Four ways to turn curiosity into contribution."
         />
-        <div className="mt-14 grid gap-px overflow-hidden rounded-lg border border-line bg-line md:grid-cols-2">
+        <div
+          className="mt-14 grid gap-px overflow-hidden rounded-lg border border-line bg-line md:grid-cols-2"
+          data-motion-stagger
+        >
           {activities.map((a, i) => (
-            <article key={a.k} className={`bg-paper p-7 sm:p-9 ${i === 0 ? "md:row-span-1" : ""}`}>
+            <article
+              key={a.k}
+              className={`bg-paper p-7 sm:p-9 ${i === 0 ? "md:row-span-1" : ""}`}
+              data-motion-card
+            >
               <h3 className="display text-[2.2rem] tracking-[0.04em] text-ink sm:text-[2.6rem]">
                 {a.k.toUpperCase()}
               </h3>
@@ -259,16 +282,19 @@ const journey = [
 
 function Journey() {
   return (
-    <section aria-labelledby="journey-title" className="border-b border-line">
+    <section aria-labelledby="journey-title" className="border-b border-line" data-motion-section>
       <Container className="py-20 sm:py-28">
         <SectionHeading
           id="journey-title"
           eyebrow="How it works"
           title="From first question to visible work."
         />
-        <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <ol
+          className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8"
+          data-motion-stagger
+        >
           {journey.map((j, i) => (
-            <li key={j.k} className="border-t-2 border-ink pt-5">
+            <li key={j.k} className="border-t-2 border-ink pt-5" data-motion-card>
               <span className="font-display text-sm text-cognac">0{i + 1}</span>
               <h3 className="mt-2 text-xl tracking-[0.06em]">{j.k.toUpperCase()}</h3>
               <p className="mt-3 leading-relaxed text-ink-60">{j.d}</p>
@@ -282,7 +308,7 @@ function Journey() {
 
 function FeaturedProjects() {
   return (
-    <section aria-labelledby="proj-title" className="border-b border-line">
+    <section aria-labelledby="proj-title" className="border-b border-line" data-motion-section>
       <Container className="py-20 sm:py-28">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
@@ -295,7 +321,7 @@ function FeaturedProjects() {
             All student work
           </ButtonLink>
         </div>
-        <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3" data-motion-stagger>
           {projects.map((p, i) => (
             <ProjectCard key={p.slug} project={p} index={i} />
           ))}
@@ -308,7 +334,11 @@ function FeaturedProjects() {
 function KnowledgeHub() {
   const [lead, ...rest] = articles as [(typeof articles)[number], ...typeof articles];
   return (
-    <section aria-labelledby="hub-title" className="border-b border-line bg-paper">
+    <section
+      aria-labelledby="hub-title"
+      className="border-b border-line bg-paper"
+      data-motion-section
+    >
       <Container className="py-20 sm:py-28">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
@@ -337,7 +367,7 @@ function Spotlight() {
   const person = contributors[0]!;
   const project = projects[0]!;
   return (
-    <section aria-labelledby="spot-title" className="border-b border-line">
+    <section aria-labelledby="spot-title" className="border-b border-line" data-motion-section>
       <Container className="grid gap-12 py-20 sm:py-28 lg:grid-cols-2 lg:items-center lg:gap-20">
         <div>
           <SectionHeading
@@ -408,7 +438,7 @@ function Spotlight() {
 function Brief() {
   const issue = briefIssues[0]!;
   return (
-    <section aria-labelledby="brief-title" className="bg-night text-on-night">
+    <section aria-labelledby="brief-title" className="bg-night text-on-night" data-motion-section>
       <Container className="py-20 sm:py-28">
         <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr] lg:gap-20">
           <div>
@@ -490,7 +520,7 @@ function Brief() {
 
 function Progression() {
   return (
-    <section aria-labelledby="prog-title" className="border-b border-line">
+    <section aria-labelledby="prog-title" className="border-b border-line" data-motion-section>
       <Container className="py-20 sm:py-28">
         <SectionHeading
           id="prog-title"
@@ -498,9 +528,13 @@ function Progression() {
           title="Progress through contribution."
           lead="Roles reflect increasing responsibility, recognised through the quality, consistency, collaboration and leadership shown in your work. There are no fixed thresholds or guaranteed benefits."
         />
-        <ol className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-motion-stagger>
           {progression.map((p, i) => (
-            <li key={p.role} className="rounded-lg border border-line bg-paper p-6">
+            <li
+              key={p.role}
+              className="rounded-lg border border-line bg-paper p-6"
+              data-motion-card
+            >
               <div className="flex items-center gap-1" aria-hidden>
                 {progression.map((_, j) => (
                   <span
@@ -521,7 +555,11 @@ function Progression() {
 
 function FaqPreview() {
   return (
-    <section aria-labelledby="faq-title" className="border-b border-line bg-paper">
+    <section
+      aria-labelledby="faq-title"
+      className="border-b border-line bg-paper"
+      data-motion-section
+    >
       <Container className="grid gap-12 py-20 sm:py-28 lg:grid-cols-[1fr_1.6fr] lg:gap-20">
         <div>
           <SectionHeading
@@ -559,7 +597,7 @@ function FaqPreview() {
 
 function FinalCta() {
   return (
-    <section aria-labelledby="cta-title">
+    <section aria-labelledby="cta-title" data-motion-section>
       <Container className="py-24 text-center sm:py-32">
         <p className="eyebrow text-cognac">Research · Create · Connect · Execute</p>
         <h2 id="cta-title" className="display mx-auto mt-5 max-w-3xl text-[2.6rem] sm:text-[4rem]">
