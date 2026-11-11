@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
     "migrate": "node scripts/migrate.mjs",
+    "migrate:preflight": "node scripts/verify-migration.mjs preflight",
+    "migrate:verify": "node scripts/verify-migration.mjs verify",
     "provision:admin": "node scripts/provision-admin.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",

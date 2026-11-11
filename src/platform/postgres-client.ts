@@ -9,7 +9,9 @@ export function createPostgresClient(
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
-    prepare: true,
+    // Runtime DATABASE_URL uses Neon’s pooled endpoint. Avoid named prepared
+    // statements so the client remains compatible with transaction pooling.
+    prepare: false,
   });
   return {
     async query<T>(statement: string, values: readonly unknown[] = []) {

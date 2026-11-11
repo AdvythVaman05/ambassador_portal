@@ -1,0 +1,62 @@
+name: Migrate Neon database
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_database:
+        description: Exact Neon database name to migrate (for example, the database name in the direct connection URL)
+        required: true
+        type: string
+      confirmation:
+        description: Type APPLY to confirm migration of the named database
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neon-production-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Verify and migrate Neon
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the selected revision
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ./.bun-version
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Require explicit confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$CONFIRMATION" != "APPLY" ]; then
+            echo "::error::Migration not run. Re-dispatch with confirmation set to APPLY."
+            exit 1
+          fi
+
+      - name: Resolve and verify intended Neon database
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          EXPECTED_DATABASE_NAME: ${{ inputs.expected_database }}
+        run: bun run migrate:preflight
+
+      - name: Apply versioned migrations
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: bun run migrate
+
+      - name: Verify migration ledger and tables
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          EXPECTED_DATABASE_NAME: ${{ inputs.expected_database }}
+        run: bun run migrate:verify
