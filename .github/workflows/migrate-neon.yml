@@ -27,10 +27,15 @@ jobs:
       - name: Check out the selected revision
         uses: actions/checkout@v4
 
+      - name: Read pinned Bun version
+        id: bun-version
+        shell: bash
+        run: echo "version=$(tr -d '\r\n' < .bun-version)" >> "$GITHUB_OUTPUT"
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: ./.bun-version
+          bun-version: ${{ steps.bun-version.outputs.version }}
 
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
