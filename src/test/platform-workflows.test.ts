@@ -55,6 +55,12 @@ describe("platform workflows", () => {
     await rejectApplication(repo, admin, application.id, "Not selected");
     expect((await repo.findApplication(application.id))?.status).toBe("rejected");
   });
+  it("restricts acceptance to administrators", async () => {
+    const repo = new DevelopmentRepository();
+    const application = await submitApplication(repo, applicationInput);
+    await expect(acceptApplication(repo, scout, application.id)).rejects.toThrow("authorised");
+    expect((await repo.findApplication(application.id))?.status).toBe("submitted");
+  });
   it("writes an accepted review and one ledger entry", async () => {
     const repo = new DevelopmentRepository();
     const submission = await submitWork(repo, scout, {
