@@ -50,7 +50,7 @@ function Apply() {
     setState("loading");
     setSubmissionError(undefined);
     try {
-      await submitApplication({
+      const result = await submitApplication({
         data: {
           fullName: String(d.get("name")).trim(),
           email: String(d.get("email")).trim(),
@@ -62,12 +62,27 @@ function Apply() {
             : undefined,
           skills: String(d.get("skills")).trim() ? [String(d.get("skills")).trim()] : undefined,
           portfolioUrl: String(d.get("portfolio")).trim() || undefined,
+          previousWork: String(d.get("previous")).trim() || undefined,
+          areas: d.getAll("areas").map(String),
+          consentAcknowledged: d.get("consent") === "on",
+          unpaidAcknowledged: d.get("unpaid") === "on",
         },
       });
+      if (!result.ok) {
+        setSubmissionError(
+          result.reason === "not_configured"
+            ? "Applications are not available until the platform database is configured. Nothing was submitted."
+            : result.reason === "validation"
+              ? "Please correct the highlighted fields before continuing. Nothing was submitted."
+              : "We could not submit your application. Nothing was submitted; please try again later.",
+        );
+        setState("error");
+        return;
+      }
       setState("success");
     } catch {
       setSubmissionError(
-        "Applications are not available until the platform database is configured. Nothing was submitted.",
+        "We could not submit your application. Nothing was submitted; please try again later.",
       );
       setState("error");
     }

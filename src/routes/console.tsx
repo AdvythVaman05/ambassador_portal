@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/site/PageHeader";
 import { Button, Container, Field, inputClass } from "@/components/site/primitives";
-import { currentSessionServer } from "./-auth.actions";
+import { currentSessionServer, logoutServer } from "./-auth.actions";
 import {
   acceptApplicationServer,
   adminDashboard,
@@ -17,6 +17,8 @@ import {
 export const Route = createFileRoute("/console")({ component: Console });
 function Console() {
   const current = useServerFn(currentSessionServer);
+  const logout = useServerFn(logoutServer);
+  const navigate = useNavigate();
   const loadDashboard = useServerFn(adminDashboard);
   const accept = useServerFn(acceptApplicationServer);
   const reject = useServerFn(rejectApplicationServer);
@@ -27,6 +29,15 @@ function Console() {
   const [authorized, setAuthorized] = useState<boolean>();
   const [dashboard, setDashboard] = useState<Awaited<ReturnType<typeof adminDashboard>>>();
   const [actionError, setActionError] = useState<string>();
+  async function signOut() {
+    try {
+      setActionError(undefined);
+      await logout();
+      await navigate({ to: "/login" });
+    } catch {
+      setActionError("We could not sign you out. Please try again.");
+    }
+  }
   async function decide(applicationId: string, accepted: boolean) {
     try {
       setActionError(undefined);
@@ -95,6 +106,11 @@ function Console() {
           ) : (
             <>
               <div className="grid gap-6">
+                <div>
+                  <Button type="button" variant="outline" onClick={signOut}>
+                    Sign out
+                  </Button>
+                </div>
                 <section className="rounded-md border border-border bg-paper p-6">
                   <h2 className="font-medium">Applications ({dashboard.applications.length})</h2>
                   {dashboard.applications.length ? (
@@ -104,6 +120,57 @@ function Console() {
                           <span>
                             {item.fullName} · {item.status}
                           </span>
+                          <details className="basis-full rounded border border-border p-3 text-sm">
+                            <summary className="cursor-pointer text-ink">
+                              View application details
+                            </summary>
+                            <dl className="mt-3 grid gap-2 text-ink-80">
+                              <div>
+                                <dt className="font-medium text-ink">Email</dt>
+                                <dd>{item.email}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-medium text-ink">Institution and course</dt>
+                                <dd>
+                                  {item.institution} · {item.course}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="font-medium text-ink">Statement</dt>
+                                <dd className="whitespace-pre-wrap">{item.statement}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-medium text-ink">Interests</dt>
+                                <dd>{item.interests.join(", ") || "None provided"}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-medium text-ink">Skills</dt>
+                                <dd>{item.skills.join(", ") || "None provided"}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-medium text-ink">Portfolio</dt>
+                                <dd>{item.portfolioUrl ?? "None provided"}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-medium text-ink">Previous work</dt>
+                                <dd className="whitespace-pre-wrap">
+                                  {item.previousWork ?? "None provided"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="font-medium text-ink">Contribution areas</dt>
+                                <dd>{item.areas.join(", ") || "None provided"}</dd>
+                              </div>
+                              <div>
+                                <dt className="font-medium text-ink">Acknowledgements</dt>
+                                <dd>
+                                  Consent: {item.consentAcknowledged ? "recorded" : "not recorded"};
+                                  unpaid program:{" "}
+                                  {item.unpaidAcknowledged ? "recorded" : "not recorded"}
+                                </dd>
+                              </div>
+                            </dl>
+                          </details>
                           {item.status === "submitted" && (
                             <>
                               <button

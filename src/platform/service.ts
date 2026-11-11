@@ -1,6 +1,6 @@
 import { PostgresRepository } from "./postgres-repository";
 import { createPostgresClient } from "./postgres-client";
-import { validatePlatformEnvironment } from "./env";
+import { validatePlatformEnvironment, type PlatformEnvironment } from "./env";
 
 export class PlatformConfigurationError extends Error {
   constructor() {
@@ -11,7 +11,12 @@ export class PlatformConfigurationError extends Error {
 }
 
 export function platformRepositoryFromEnvironment(environment: Record<string, string | undefined>) {
-  const parsed = validatePlatformEnvironment(environment);
+  let parsed: PlatformEnvironment;
+  try {
+    parsed = validatePlatformEnvironment(environment);
+  } catch {
+    throw new PlatformConfigurationError();
+  }
   return {
     repository: new PostgresRepository(createPostgresClient(parsed.DATABASE_URL)),
     environment: parsed,

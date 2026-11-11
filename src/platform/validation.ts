@@ -9,6 +9,10 @@ export const applicationInputSchema = z.object({
   interests: z.array(z.string().trim().max(80)).max(12).default([]),
   skills: z.array(z.string().trim().max(80)).max(20).default([]),
   portfolioUrl: z.string().url().max(2048).optional(),
+  previousWork: z.string().trim().max(5000).optional(),
+  areas: z.array(z.string().trim().max(80)).max(12).default([]),
+  consentAcknowledged: z.literal(true),
+  unpaidAcknowledged: z.literal(true),
 });
 export const submissionInputSchema = z.object({
   taskId: z.string().uuid(),

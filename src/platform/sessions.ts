@@ -7,9 +7,26 @@ export function newSessionToken() {
   return crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "");
 }
 
-export async function hashSessionToken(token: string) {
-  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(token));
-  return Array.from(new Uint8Array(digest), (part) => part.toString(16).padStart(2, "0")).join("");
+function hex(bytes: Uint8Array) {
+  return Array.from(bytes, (part) => part.toString(16).padStart(2, "0")).join("");
+}
+
+/** Legacy SHA-256 hashes remain readable so rotating to keyed hashes does not revoke existing sessions. */
+export async function hashSessionToken(token: string, secret?: string) {
+  let digest: ArrayBuffer;
+  if (secret) {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    digest = await crypto.subtle.sign("HMAC", key, encoder.encode(token));
+  } else {
+    digest = await crypto.subtle.digest("SHA-256", encoder.encode(token));
+  }
+  return hex(new Uint8Array(digest));
 }
 
 export function sessionExpiry(now = new Date()) {

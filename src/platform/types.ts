@@ -17,6 +17,15 @@ export interface ApplicationRecord {
   institution: string;
   course: string;
   statement: string;
+  interests: readonly string[];
+  skills: readonly string[];
+  portfolioUrl?: string;
+  previousWork?: string;
+  areas: readonly string[];
+  consentAcknowledged: boolean;
+  consentAcknowledgedAt?: Date;
+  unpaidAcknowledged: boolean;
+  unpaidAcknowledgedAt?: Date;
   status: ApplicationStatus;
   reviewedBy?: string;
   reviewNotes?: string;

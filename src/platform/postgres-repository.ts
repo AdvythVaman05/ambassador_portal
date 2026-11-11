@@ -30,6 +30,15 @@ type ApplicationRow = {
   institution: string;
   course: string;
   statement: string;
+  interests: string[];
+  skills: string[];
+  portfolio_url: string | null;
+  previous_work: string | null;
+  areas: string[];
+  consent_acknowledged: boolean;
+  consent_acknowledged_at: Date | null;
+  unpaid_acknowledged: boolean;
+  unpaid_acknowledged_at: Date | null;
   status: ApplicationRecord["status"];
   reviewed_by: string | null;
   review_notes: string | null;
@@ -42,6 +51,15 @@ const application = (row: ApplicationRow): ApplicationRecord => ({
   institution: row.institution,
   course: row.course,
   statement: row.statement,
+  interests: row.interests,
+  skills: row.skills,
+  ...(row.portfolio_url ? { portfolioUrl: row.portfolio_url } : {}),
+  ...(row.previous_work ? { previousWork: row.previous_work } : {}),
+  areas: row.areas,
+  consentAcknowledged: row.consent_acknowledged,
+  ...(row.consent_acknowledged_at ? { consentAcknowledgedAt: row.consent_acknowledged_at } : {}),
+  unpaidAcknowledged: row.unpaid_acknowledged,
+  ...(row.unpaid_acknowledged_at ? { unpaidAcknowledgedAt: row.unpaid_acknowledged_at } : {}),
   status: row.status,
   ...(row.reviewed_by ? { reviewedBy: row.reviewed_by } : {}),
   ...(row.review_notes ? { reviewNotes: row.review_notes } : {}),
@@ -135,8 +153,23 @@ export class PostgresRepository implements PlatformRepository {
   }
   async createApplication(input: Omit<ApplicationRecord, "id" | "status" | "createdAt">) {
     const { rows } = await this.db.query<ApplicationRow>(
-      "INSERT INTO applications(full_name,email,institution,course,statement) VALUES($1,$2,$3,$4,$5) RETURNING *",
-      [input.fullName, input.email, input.institution, input.course, input.statement],
+      "INSERT INTO applications(full_name,email,institution,course,statement,interests,skills,portfolio_url,previous_work,areas,consent_acknowledged,consent_acknowledged_at,unpaid_acknowledged,unpaid_acknowledged_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *",
+      [
+        input.fullName,
+        input.email,
+        input.institution,
+        input.course,
+        input.statement,
+        input.interests,
+        input.skills,
+        input.portfolioUrl ?? null,
+        input.previousWork ?? null,
+        input.areas,
+        input.consentAcknowledged,
+        input.consentAcknowledgedAt ?? null,
+        input.unpaidAcknowledged,
+        input.unpaidAcknowledgedAt ?? null,
+      ],
     );
     return application(rows[0]!);
   }

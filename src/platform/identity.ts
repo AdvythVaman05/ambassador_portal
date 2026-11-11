@@ -15,7 +15,10 @@ export class InvalidCredentialsError extends Error {
 }
 
 export class SessionService {
-  constructor(private readonly repository: PlatformRepository) {}
+  constructor(
+    private readonly repository: PlatformRepository,
+    private readonly sessionSecret: string,
+  ) {}
 
   async login(input: unknown) {
     const values = loginInputSchema.parse(input);
@@ -32,7 +35,7 @@ export class SessionService {
     const expiresAt = sessionExpiry();
     await this.repository.createSession({
       userId: account.id,
-      tokenHash: await hashSessionToken(token),
+      tokenHash: await hashSessionToken(token, this.sessionSecret),
       expiresAt,
     });
     return {
@@ -49,10 +52,18 @@ export class SessionService {
 
   async getUser(token: string | undefined) {
     if (!token) return undefined;
-    return this.repository.findSessionUser(await hashSessionToken(token));
+    const keyed = await hashSessionToken(token, this.sessionSecret);
+    return (
+      (await this.repository.findSessionUser(keyed)) ??
+      this.repository.findSessionUser(await hashSessionToken(token))
+    );
   }
 
   async logout(token: string | undefined) {
-    if (token) await this.repository.revokeSession(await hashSessionToken(token));
+    if (!token) return;
+    const keyed = await hashSessionToken(token, this.sessionSecret);
+    await this.repository.revokeSession(keyed);
+    // Revoke a pre-HMAC session too, allowing a rollout without leaving legacy sessions behind.
+    await this.repository.revokeSession(await hashSessionToken(token));
   }
 }

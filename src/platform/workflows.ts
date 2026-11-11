@@ -12,6 +12,15 @@ export async function submitApplication(repo: PlatformRepository, input: unknown
     institution: data.institution,
     course: data.course,
     statement: data.statement,
+    interests: data.interests,
+    skills: data.skills,
+    ...(data.portfolioUrl ? { portfolioUrl: data.portfolioUrl } : {}),
+    ...(data.previousWork ? { previousWork: data.previousWork } : {}),
+    areas: data.areas,
+    consentAcknowledged: data.consentAcknowledged,
+    consentAcknowledgedAt: new Date(),
+    unpaidAcknowledged: data.unpaidAcknowledged,
+    unpaidAcknowledgedAt: new Date(),
   });
 }
 export async function acceptApplication(

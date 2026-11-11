@@ -16,9 +16,10 @@ import { announcementInputSchema } from "@/platform/validation";
 
 async function access() {
   const configured = platformRepositoryFromEnvironment(process.env);
-  const user = await new SessionService(configured.repository).getUser(
-    getCookie(sessionCookieName),
-  );
+  const user = await new SessionService(
+    configured.repository,
+    configured.environment.SESSION_SECRET,
+  ).getUser(getCookie(sessionCookieName));
   return { repository: configured.repository, user };
 }
 export const adminDashboard = createServerFn({ method: "GET" }).handler(async () => {

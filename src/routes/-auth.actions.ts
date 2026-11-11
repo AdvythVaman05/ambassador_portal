@@ -8,7 +8,10 @@ export const loginServer = createServerFn({ method: "POST" })
   .validator(loginInputSchema)
   .handler(async ({ data }) => {
     const configured = platformRepositoryFromEnvironment(process.env);
-    const session = await new SessionService(configured.repository).login(data);
+    const session = await new SessionService(
+      configured.repository,
+      configured.environment.SESSION_SECRET,
+    ).login(data);
     setCookie(sessionCookieName, session.token, {
       httpOnly: true,
       sameSite: "lax",
@@ -20,12 +23,16 @@ export const loginServer = createServerFn({ method: "POST" })
 
 export const currentSessionServer = createServerFn({ method: "GET" }).handler(async () => {
   const configured = platformRepositoryFromEnvironment(process.env);
-  return new SessionService(configured.repository).getUser(getCookie(sessionCookieName));
+  return new SessionService(configured.repository, configured.environment.SESSION_SECRET).getUser(
+    getCookie(sessionCookieName),
+  );
 });
 
 export const logoutServer = createServerFn({ method: "POST" }).handler(async () => {
   const configured = platformRepositoryFromEnvironment(process.env);
-  await new SessionService(configured.repository).logout(getCookie(sessionCookieName));
+  await new SessionService(configured.repository, configured.environment.SESSION_SECRET).logout(
+    getCookie(sessionCookieName),
+  );
   deleteCookie(sessionCookieName, {
     httpOnly: true,
     sameSite: "lax",
