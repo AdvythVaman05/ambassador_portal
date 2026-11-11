@@ -1,6 +1,22 @@
 import { createServerFn } from "@tanstack/react-start";
 import { applicationInputSchema } from "@/platform/validation";
 
+export const applicationDatabaseStatusServer = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { PlatformConfigurationError, platformRepositoryFromEnvironment } =
+      await import("@/platform/service");
+    try {
+      const configured = platformRepositoryFromEnvironment(process.env);
+      await configured.repository.healthCheck();
+      return { status: "available" as const };
+    } catch (error) {
+      if (error instanceof PlatformConfigurationError) return { status: "missing" as const };
+      console.error("Application database availability check failed");
+      return { status: "unavailable" as const };
+    }
+  },
+);
+
 export const submitApplicationServer = createServerFn({ method: "POST" })
   .validator((input: unknown) => input)
   .handler(async ({ data }) => {

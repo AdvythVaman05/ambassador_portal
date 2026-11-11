@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { PageHeader } from "@/components/site/PageHeader";
 import { Button, Container, Field, inputClass } from "@/components/site/primitives";
-import { submitApplicationServer } from "./-apply.actions";
+import { applicationDatabaseStatusServer, submitApplicationServer } from "./-apply.actions";
 
 export const Route = createFileRoute("/apply")({
   head: () => ({
@@ -24,7 +24,17 @@ function Apply() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [submissionError, setSubmissionError] = useState<string>();
+  const [databaseStatus, setDatabaseStatus] = useState<
+    "checking" | "missing" | "unavailable" | "available"
+  >("checking");
   const submitApplication = useServerFn(submitApplicationServer);
+  const checkDatabase = useServerFn(applicationDatabaseStatusServer);
+
+  useEffect(() => {
+    checkDatabase()
+      .then((result) => setDatabaseStatus(result.status))
+      .catch(() => setDatabaseStatus("unavailable"));
+  }, [checkDatabase]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -97,11 +107,16 @@ function Apply() {
       />
       <Container className="py-16">
         <div
-          role="note"
+          role="status"
           className="mb-8 max-w-xl rounded-md border border-dashed border-brass bg-paper p-4 text-sm text-ink-80"
         >
-          Applications are stored only when the platform database is configured. Until then, this
-          form validates your answers and does not submit them.
+          {databaseStatus === "checking" && "Checking secure application storage availability…"}
+          {databaseStatus === "available" &&
+            "Applications are stored securely for review after successful submission."}
+          {databaseStatus === "missing" &&
+            "Applications are temporarily unavailable because secure storage has not been configured. Nothing will be submitted."}
+          {databaseStatus === "unavailable" &&
+            "Applications are temporarily unavailable because secure storage cannot be reached. Nothing will be submitted."}
         </div>
         <form noValidate onSubmit={onSubmit} className="grid max-w-xl gap-6">
           <Field label="Full name" id="name" error={errors["name"]}>

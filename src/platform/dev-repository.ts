@@ -37,6 +37,7 @@ export class DevelopmentRepository implements PlatformRepository {
   async transaction<T>(work: (repository: PlatformRepository) => Promise<T>): Promise<T> {
     return work(this);
   }
+  async healthCheck() {}
   async findUser(id: string) {
     return this.users.get(id);
   }

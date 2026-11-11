@@ -73,6 +73,9 @@ export class PostgresRepository implements PlatformRepository {
       work(new PostgresRepository(transaction)),
     );
   }
+  async healthCheck() {
+    await this.db.query("SELECT 1");
+  }
   async findUser(id: string) {
     const { rows } = await this.db.query<UserRow>(
       "SELECT u.id, u.email, u.display_name, u.suspended_at, COALESCE(array_agg(r.role) FILTER (WHERE r.role IS NOT NULL), '{}') AS roles FROM users u LEFT JOIN role_assignments r ON r.user_id=u.id WHERE u.id=$1 GROUP BY u.id",

@@ -11,6 +11,7 @@ import type {
 
 export interface PlatformRepository {
   transaction<T>(work: (repository: PlatformRepository) => Promise<T>): Promise<T>;
+  healthCheck(): Promise<void>;
   findUser(id: string): Promise<PlatformUser | undefined>;
   findUserByEmail(email: string): Promise<PlatformUser | undefined>;
   findUserCredentials(
